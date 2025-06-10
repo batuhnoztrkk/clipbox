@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-2xl font-semibold mb-4">Yeni Video Oluştur</h2>
+
+<form method="POST" action="{% url 'videos:create' %}" class="bg-white p-6 rounded shadow max-w-lg">
+    {% csrf_token %}
+    <div class="mb-4">
+        <label for="title" class="block mb-1 font-semibold">Video Konusu</label>
+        <input type="text" name="title" id="title" class="w-full border rounded px-3 py-2" required />
+    </div>
+    <div class="mb-4">
+        <label for="description" class="block mb-1 font-semibold">Açıklama</label>
+        <textarea name="description" id="description" rows="4" class="w-full border rounded px-3 py-2" required></textarea>
+    </div>
+    <div class="mb-4">
+        <label for="length_seconds" class="block mb-1 font-semibold">Video Süresi (saniye)</label>
+        <input type="number" name="length_seconds" id="length_seconds" class="w-full border rounded px-3 py-2" min="5" max="900" required />
+    </div>
+    <div class="mb-4">
+        <label for="voice_type" class="block mb-1 font-semibold">Ses Tipi</label>
+        <select name="voice_type" id="voice_type" class="w-full border rounded px-3 py-2" required>
+            <option value="female">Kadın</option>
+            <option value="male">Erkek</option>
+        </select>
+    </div>
+    <div class="mb-4 flex items-center space-x-2">
+        <input type="checkbox" name="subtitle" id="subtitle" />
+        <label for="subtitle" class="font-semibold">Altyazı Olsun mu?</label>
+    </div>
+    <div class="mb-6">
+        <label for="panel" class="block mb-1 font-semibold">Panel</label>
+        <select name="panel" id="panel" class="w-full border rounded px-3 py-2" required>
+            {% for panel in panels %}
+            <option value="{{ panel.id }}">{{ panel.name }} - {{ panel.platform }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <button type="submit" class="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700">Oluştur</button>
+</form>
+
+{% endblock %}

@@ -1,13 +1,11 @@
-# core/services/voice_generation.py
-
-import openai
+from openai import OpenAI
 
 def generate_voice(user, text, voice="alloy"):
     try:
         api_key = user.api_keys.tts_api_key
-        openai.api_key = api_key
+        client = OpenAI(api_key=api_key)
 
-        response = openai.audio.speech.create(
+        response = client.audio.speech.create(
             model="tts-1",
             voice=voice,
             input=text

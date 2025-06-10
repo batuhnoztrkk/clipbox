@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ video.title }}</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>{{ video.title }}</h1>
+    <p>{{ video.description }}</p>
+    <p>Status: <span id="status">{{ video.status }}</span></p>
+
+    {% if video.final_video %}
+        <video width="640" height="360" controls>
+            <source src="{{ video.final_video.url }}" type="video/mp4">
+            Tarayıcınız video formatını desteklemiyor.
+        </video>
+    {% endif %}
+
+    <button id="generate-btn" {% if video.status == 'GENERATING' %}disabled{% endif %}>
+        Videoyu Oluştur
+    </button>
+
+    <div id="result"></div>
+
+    <script>
+        $('#generate-btn').click(function() {
+            $('#generate-btn').prop('disabled', true);
+            $('#status').text('GENERATING...');
+            $('#result').text('');
+
+            $.ajax({
+                url: "{% url 'videos:generate_video' video.id %}",
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if(response.success){
+                        $('#status').text('COMPLETED');
+                        $('#result').html('<a href="' + response.video + '" target="_blank">Videoyu İndir / İzle</a>');
+                    } else {
+                        $('#status').text('ERROR');
+                        $('#result').text('Hata: ' + response.error);
+                    }
+                    $('#generate-btn').prop('disabled', false);
+                },
+                error: function() {
+                    $('#status').text('ERROR');
+                    $('#result').text('İstek gönderilemedi.');
+                    $('#generate-btn').prop('disabled', false);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

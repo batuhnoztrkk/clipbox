@@ -126,3 +126,29 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+import os
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+LOGIN_REDIRECT_URL = '/panel/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],  # veya os.path.join ile path
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',          # <-- bu satırı ekle (WARNING için)
+                'django.contrib.auth.context_processors.auth',           # <-- bu satır zorunlu (ERROR)
+                'django.contrib.messages.context_processors.messages',   # <-- bu satır zorunlu (ERROR)
+                # varsa diğer context_processors...
+            ],
+        },
+    },
+]
+

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-semibold">Videolar</h2>
+    <a href="{% url 'videos:create' %}" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Yeni Video Oluştur</a>
+</div>
+
+<table class="min-w-full bg-white shadow rounded overflow-hidden">
+    <thead class="bg-gray-200">
+        <tr>
+            <th class="py-2 px-4 text-left">Başlık</th>
+            <th class="py-2 px-4 text-left">Panel</th>
+            <th class="py-2 px-4 text-left">Uzunluk (sn)</th>
+            <th class="py-2 px-4 text-left">Durum</th>
+            <th class="py-2 px-4 text-left">Oluşturulma Tarihi</th>
+            <th class="py-2 px-4 text-left">İşlemler</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for video in videos %}
+        <tr class="border-b hover:bg-gray-50">
+            <td class="py-2 px-4">{{ video.title }}</td>
+            <td class="py-2 px-4">{{ video.panel.name }}</td>
+            <td class="py-2 px-4">{{ video.length_seconds }}</td>
+            <td class="py-2 px-4">{{ video.status }}</td>
+            <td class="py-2 px-4">{{ video.created_at|date:"d.m.Y H:i" }}</td>
+            <td class="py-2 px-4">
+                <a href="{% url 'videos:detail' video.id %}" class="text-blue-600 hover:underline">Detay</a> |
+                <a href="{% url 'videos:edit' video.id %}" class="text-yellow-600 hover:underline">Düzenle</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center py-4">Henüz video yok.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
