@@ -1,56 +1,205 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ video.title }}</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-</head>
-<body>
-    <h1>{{ video.title }}</h1>
-    <p>{{ video.description }}</p>
-    <p>Status: <span id="status">{{ video.status }}</span></p>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Başlık ve Açıklama -->
+  <h2 class="text-3xl font-bold text-primary">🎬 {{ video.title }}</h2>
+  <p class="text-gray-400">{{ video.description }}</p>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+
+    <!-- Durum Kutusu (Bağımsız, her zaman görünür) -->
+    <div class="bg-card p-4 rounded-lg shadow border border-border text-center">
+      <h3 class="text-lg font-semibold text-cyan-300 mb-2">📊 Video Durumu</h3>
+      <span
+        class="inline-block px-4 py-2 rounded-full font-bold text-sm
+        {% if video.status == 'COMPLETED' %}bg-green-600 text-green-100
+        {% elif video.status == 'ERROR' %}bg-red-600 text-red-100
+        {% else %}bg-yellow-500 text-yellow-100{% endif %}">
+        {{ video.get_status_display }}
+      </span>
+      {% if video.error_message %}
+      <p class="mt-2 text-red-400 text-xs italic">Hata: {{ video.error_message }}</p>
+      {% endif %}
+    </div>
 
     {% if video.final_video %}
-        <video width="640" height="360" controls>
-            <source src="{{ video.final_video.url }}" type="video/mp4">
-            Tarayıcınız video formatını desteklemiyor.
-        </video>
+    <!-- Final Video + Görüntüleme Alanı -->
+    <div class="bg-card p-4 rounded-lg shadow border border-border col-span-2">
+      <h3 class="text-lg font-semibold text-cyan-300 mb-2">🎥 Final Video</h3>
+      <video class="w-full rounded" controls>
+        <source src="{{ video.final_video.url }}" type="video/mp4" />
+        Tarayıcınız video formatını desteklemiyor.
+      </video>
+      <a href="{{ video.final_video.url }}" target="_blank"
+        class="block mt-3 text-cyan-400 hover:underline text-sm">🎞️ Videoyu İzle / İndir</a>
+    </div>
     {% endif %}
 
-    <button id="generate-btn" {% if video.status == 'GENERATING' %}disabled{% endif %}>
-        Videoyu Oluştur
-    </button>
+  </div>
 
-    <div id="result"></div>
+  <!-- AI İçerikler, Ses, Altyazı, Görseller -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
 
-    <script>
-        $('#generate-btn').click(function() {
-            $('#generate-btn').prop('disabled', true);
-            $('#status').text('GENERATING...');
-            $('#result').text('');
+    <!-- AI Content -->
+    <div class="bg-card p-4 rounded-lg shadow border border-border space-y-3 col-span-1">
+      <h3 class="text-lg font-semibold text-cyan-300">🤖 AI İçerik</h3>
+      {% if video.ai_content %}
+        <p><strong>Başlık:</strong> <span class="ai-content-title">{{ video.ai_content.title }}</span></p>
+        <p><strong>Açıklama:</strong> <span class="ai-content-description">{{ video.ai_content.description }}</span></p>
+        <p><strong>Hashtagler:</strong> <span class="ai-content-hashtags">
+        {% for tag in video.ai_content.hashtags %}
+            <span class="text-sm text-cyan-400">#{{ tag }}</span>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+        </span></p>
+        <details class="mt-2 ai-content-script">
+        <summary class="cursor-pointer text-cyan-300 font-semibold">Senaryo / Metin</summary>
+        <pre class="whitespace-pre-wrap bg-gray-900 p-2 rounded text-sm">{{ video.ai_content.script }}</pre>
+        </details>
+      {% else %}
+        <p class="text-gray-400 italic">Henüz AI içerik oluşturulmadı.</p>
+      {% endif %}
+    </div>
 
-            $.ajax({
-                url: "{% url 'videos:generate_video' video.id %}",
-                type: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                success: function(response) {
-                    if(response.success){
-                        $('#status').text('COMPLETED');
-                        $('#result').html('<a href="' + response.video + '" target="_blank">Videoyu İndir / İzle</a>');
-                    } else {
-                        $('#status').text('ERROR');
-                        $('#result').text('Hata: ' + response.error);
-                    }
-                    $('#generate-btn').prop('disabled', false);
-                },
-                error: function() {
-                    $('#status').text('ERROR');
-                    $('#result').text('İstek gönderilemedi.');
-                    $('#generate-btn').prop('disabled', false);
+    <!-- Ses ve Altyazı -->
+    <div class="bg-card p-4 rounded-lg shadow border border-border space-y-4 col-span-1">
+      <h3 class="text-lg font-semibold text-cyan-300">🔊 Ses & Altyazı</h3>
+      {% if video.voice_file %}
+        <audio controls class="w-full">
+          <source src="{{ video.voice_file.url }}" type="audio/mpeg">
+          Tarayıcınız ses formatını desteklemiyor.
+        </audio>
+        <a href="{{ video.voice_file.url }}" target="_blank" class="text-cyan-400 underline text-sm block mt-1">🎧 Sesi İndir</a>
+      {% else %}
+        <p class="text-gray-400 italic">Ses dosyası yok.</p>
+      {% endif %}
+      
+      {% if video.subtitle_file %}
+        <a href="{{ video.subtitle_file.url }}" target="_blank" class="text-cyan-400 underline text-sm block mt-2">📝 Altyazı Dosyasını İndir</a>
+      {% else %}
+        <p class="text-gray-400 italic mt-2">Altyazı dosyası yok.</p>
+      {% endif %}
+    </div>
+
+    <!-- Görseller -->
+    <div class="bg-card p-4 rounded-lg shadow border border-border space-y-3 col-span-1">
+      <h3 class="text-lg font-semibold text-cyan-300">🖼️ Görseller</h3>
+      {% if video.images.count > 0 %}
+        <div class="grid grid-cols-2 gap-2">
+          {% for img in video.images.all %}
+            <img src="{{ img.image.url }}" alt="Video Görseli" class="rounded w-full object-cover">
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-gray-400 italic">Görsel eklenmemiş.</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Üretim Adımları (Her zaman görünür) -->
+  <div class="bg-card p-6 rounded-lg shadow border border-border mt-6 space-y-4">
+    <h3 class="text-xl font-semibold text-cyan-300">📋 Üretim Adımları</h3>
+
+    <div class="space-y-3 max-w-sm">
+      <button onclick="runStep('{{ video.id }}', 'text')" class="btn-step">1️⃣ Metin Üret</button>
+      <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">2️⃣ Ses Üret</button>
+      <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">3️⃣ Altyazı Üret</button>
+      <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">4️⃣ Görseller Üret</button>
+      <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">5️⃣ Montajla</button>
+    </div>
+
+    <div id="step-result" class="text-sm text-gray-300 pt-2 italic"></div>
+  </div>
+
+</div>
+
+<script>
+    function runStep(videoId, step) {
+        const $status = $('#status');
+        const $result = $('#step-result');
+        $status.text('İşleniyor...');
+        $result.text('');
+
+        $.ajax({
+            url: `/videos/${videoId}/generate/${step}/`,
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            success: function(res) {
+            if (res.success) {
+                $status.text(res.new_status || 'Tamamlandı');
+
+                if (step === 'text' && res.ai_content) {
+                // AI içerik alanlarını sayfada güncelle
+                const ai = res.ai_content;
+
+                // Başlık
+                $('.ai-content-title').text(ai.title || '');
+                // Açıklama
+                $('.ai-content-description').text(ai.description || '');
+                // Hashtagler
+                if (ai.hashtags && ai.hashtags.length) {
+                    let hashtagsHtml = '';
+                    ai.hashtags.forEach(function(tag, idx) {
+                    hashtagsHtml += `<span class="text-sm text-cyan-400">#${tag}</span>`;
+                    if (idx !== ai.hashtags.length - 1) hashtagsHtml += ', ';
+                    });
+                    $('.ai-content-hashtags').html(hashtagsHtml);
+                } else {
+                    $('.ai-content-hashtags').html('');
                 }
-            });
+                // Script
+                $('.ai-content-script pre').text(ai.script || '');
+
+                $result.html('<p class="text-green-400 font-semibold">Metin başarıyla üretildi.</p>');
+                } else {
+                $result.text(res.message || 'Adım başarıyla tamamlandı.');
+                }
+
+                if (res.video_url) {
+                $result.append(`<br><a href="${res.video_url}" target="_blank" class="text-cyan-400 underline">Videoyu İzle</a>`);
+                }
+            } else {
+                $status.text('Hata');
+                $result.text('Hata: ' + (res.error || 'Bilinmeyen'));
+            }
+            },
+            error: function() {
+            $status.text('Hata');
+            $result.text('Sunucuya erişilemedi.');
+            }
         });
-    </script>
-</body>
-</html>
+    }
+</script>
+
+<style>
+  .btn-step {
+    display: block;
+    width: 100%;
+    background-color: #0ea5e9;
+    color: black;
+    padding: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+  .btn-step:hover {
+    background-color: #38bdf8;
+  }
+  .bg-card {
+    background-color: #1f2937; /* Tailwind slate-800 */
+  }
+  .text-primary {
+    color: #0ea5e9; /* Tailwind sky-500 */
+  }
+  .text-cyan-300 {
+    color: #67e8f9;
+  }
+  .border-border {
+    border-color: #334155; /* Tailwind slate-700 */
+  }
+</style>
+
+{% endblock %}

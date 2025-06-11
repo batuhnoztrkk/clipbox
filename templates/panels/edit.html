@@ -1,6 +1,31 @@
-<h1>Panel Düzenle</h1>
-<form method="post">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">Kaydet</button>
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="text-2xl font-bold text-primary mb-6">⚙️ Panel Düzenle</h2>
+
+<form method="post" class="space-y-6 bg-card border border-border p-6 rounded-xl shadow-lg">
+    {% csrf_token %}
+    
+    <!-- Form alanlarını modernize et -->
+    {% for field in form %}
+        <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">
+                {{ field.label }}
+            </label>
+            {{ field }}
+            {% if field.help_text %}
+                <p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+                <p class="text-sm text-red-500 mt-1">{{ field.errors }}</p>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <button type="submit"
+            class="bg-primary text-black px-6 py-2 rounded-lg hover:bg-cyan-400 font-semibold transition w-full">
+        💾 Kaydet
+    </button>
 </form>
+
+{% endblock %}

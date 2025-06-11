@@ -1,38 +1,59 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="flex justify-between items-center mb-4">
-    <h2 class="text-2xl font-semibold">Videolar</h2>
-    <a href="{% url 'videos:create' %}" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Yeni Video Oluştur</a>
+<div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-primary">🎥 Videolar</h2>
+    <a href="{% url 'videos:create' %}" 
+       class="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-2 rounded-lg font-medium transition">
+        ➕ Yeni Video Oluştur
+    </a>
 </div>
 
-<table class="min-w-full bg-white shadow rounded overflow-hidden">
-    <thead class="bg-gray-200">
-        <tr>
-            <th class="py-2 px-4 text-left">Başlık</th>
-            <th class="py-2 px-4 text-left">Panel</th>
-            <th class="py-2 px-4 text-left">Uzunluk (sn)</th>
-            <th class="py-2 px-4 text-left">Durum</th>
-            <th class="py-2 px-4 text-left">Oluşturulma Tarihi</th>
-            <th class="py-2 px-4 text-left">İşlemler</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for video in videos %}
-        <tr class="border-b hover:bg-gray-50">
-            <td class="py-2 px-4">{{ video.title }}</td>
-            <td class="py-2 px-4">{{ video.panel.name }}</td>
-            <td class="py-2 px-4">{{ video.length_seconds }}</td>
-            <td class="py-2 px-4">{{ video.status }}</td>
-            <td class="py-2 px-4">{{ video.created_at|date:"d.m.Y H:i" }}</td>
-            <td class="py-2 px-4">
-                <a href="{% url 'videos:detail' video.id %}" class="text-blue-600 hover:underline">Detay</a> |
-                <a href="{% url 'videos:edit' video.id %}" class="text-yellow-600 hover:underline">Düzenle</a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="6" class="text-center py-4">Henüz video yok.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
-
+<div class="overflow-x-auto rounded-lg border border-border bg-card">
+    <table class="min-w-full text-sm text-gray-200">
+        <thead class="bg-[#1f2937] text-gray-400 uppercase tracking-wider text-xs">
+            <tr>
+                <th class="px-6 py-3 text-left">🎬 Başlık</th>
+                <th class="px-6 py-3 text-left">📦 Panel</th>
+                <th class="px-6 py-3 text-left">⏱️ Süre (dk)</th>
+                <th class="px-6 py-3 text-left">🚦 Durum</th>
+                <th class="px-6 py-3 text-left">📅 Oluşturulma</th>
+                <th class="px-6 py-3 text-left">⚙️ İşlem</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for video in videos %}
+            <tr class="border-t border-border hover:bg-[#2a303c] transition">
+                <td class="px-6 py-4 font-medium">{{ video.title }}</td>
+                <td class="px-6 py-4">{{ video.panel.name }}</td>
+                <td class="px-6 py-4">{{ video.duration_minutes }}</td>
+                <td class="px-6 py-4">
+                    {% if video.status == "COMPLETED" %}
+                        <span class="text-green-400 font-semibold">Tamamlandı</span>
+                    {% elif video.status == "ERROR" %}
+                        <span class="text-red-400 font-semibold">Hata</span>
+                    {% elif video.status == "GENERATING" %}
+                        <span class="text-yellow-400 font-semibold">Oluşturuluyor</span>
+                    {% else %}
+                        <span class="text-gray-400">Bekliyor</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4">{{ video.created_at|date:"d.m.Y H:i" }}</td>
+                <td class="px-6 py-4 space-x-2">
+                    <a href="{% url 'videos:detail' video.id %}" 
+                       class="text-cyan-400 hover:underline">Detay</a>
+                    <a href="{% url 'videos:edit' video.id %}" 
+                       class="text-yellow-400 hover:underline">Düzenle</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center py-6 text-gray-500 italic">
+                    🚫 Henüz video yok.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

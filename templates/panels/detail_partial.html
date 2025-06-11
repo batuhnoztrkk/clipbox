@@ -1,6 +1,26 @@
-<div>
-    <h3 class="text-xl font-semibold mb-2">{{ panel.name }} Detayları</h3>
-    <p><strong>Platform:</strong> {{ panel.platform }}</p>
-    <p><strong>Açıklama:</strong> {{ panel.description }}</p>
-    <p><strong>Oluşturulma Tarihi:</strong> {{ panel.created_at|date:"d.m.Y H:i" }}</p>
+<div class="bg-card border border-border rounded-xl p-6 shadow-lg text-gray-300 space-y-4">
+    <h3 class="text-xl font-bold text-primary">📋 {{ panel.name }} Detayları</h3>
+
+    <div class="space-y-1 text-sm">
+        <p><span class="font-semibold text-gray-400">🖥️ Platform:</span> {{ panel.platform }}</p>
+        <p><span class="font-semibold text-gray-400">📝 Açıklama:</span> {{ panel.description|default:"—" }}</p>
+        <p><span class="font-semibold text-gray-400">📅 Oluşturulma:</span> {{ panel.created_at|date:"d.m.Y H:i" }}</p>
+    </div>
+
+    <div class="pt-4 border-t border-gray-700 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        <a href="{% url 'videos:list' %}?panel_id={{ panel.id }}"
+           class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded text-center transition">
+            📼 Videoları Görüntüle
+        </a>
+
+        <a href="{% url 'videos:create' %}?panel_id={{ panel.id }}"
+           class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded text-center transition">
+            🎬 Yeni Video Oluştur
+        </a>
+
+        <a href="{% url 'panels:edit' panel.id %}"
+           class="bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded text-center transition">
+            ⚙️ Paneli Düzenle
+        </a>
+    </div>
 </div>

@@ -1,42 +1,55 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="text-2xl font-semibold mb-4">Yeni Video Oluştur</h2>
 
-<form method="POST" action="{% url 'videos:create' %}" class="bg-white p-6 rounded shadow max-w-lg">
+<h2 class="text-3xl font-bold text-primary mb-6">🎥 Yeni Video Oluştur</h2>
+
+<form method="POST" action="{% url 'videos:create' %}" class="bg-card border border-border p-6 rounded-lg shadow max-w-2xl mx-auto space-y-5 text-gray-300">
     {% csrf_token %}
-    <div class="mb-4">
-        <label for="title" class="block mb-1 font-semibold">Video Konusu</label>
-        <input type="text" name="title" id="title" class="w-full border rounded px-3 py-2" required />
+
+    <div>
+        <label for="title" class="block mb-1 font-medium text-sm text-gray-400">🎯 Video Konusu</label>
+        <input type="text" name="title" id="title" class="w-full bg-background border border-border rounded px-4 py-2 focus:outline-none focus:ring focus:ring-cyan-500" required />
     </div>
-    <div class="mb-4">
-        <label for="description" class="block mb-1 font-semibold">Açıklama</label>
-        <textarea name="description" id="description" rows="4" class="w-full border rounded px-3 py-2" required></textarea>
+
+    <div>
+        <label for="description" class="block mb-1 font-medium text-sm text-gray-400">📝 Açıklama</label>
+        <textarea name="description" id="description" rows="4" class="w-full bg-background border border-border rounded px-4 py-2 focus:outline-none focus:ring focus:ring-cyan-500" required></textarea>
     </div>
-    <div class="mb-4">
-        <label for="length_seconds" class="block mb-1 font-semibold">Video Süresi (saniye)</label>
-        <input type="number" name="length_seconds" id="length_seconds" class="w-full border rounded px-3 py-2" min="5" max="900" required />
+
+    <div>
+        <label for="length_seconds" class="block mb-1 font-medium text-sm text-gray-400">⏱️ Video Süresi (saniye)</label>
+        <input type="number" name="length_seconds" id="length_seconds" class="w-full bg-background border border-border rounded px-4 py-2 focus:outline-none focus:ring focus:ring-cyan-500" min="5" max="900" required />
     </div>
-    <div class="mb-4">
-        <label for="voice_type" class="block mb-1 font-semibold">Ses Tipi</label>
-        <select name="voice_type" id="voice_type" class="w-full border rounded px-3 py-2" required>
+
+    <div>
+        <label for="voice_type" class="block mb-1 font-medium text-sm text-gray-400">🗣️ Ses Tipi</label>
+        <select name="voice_type" id="voice_type" class="w-full bg-background border border-border rounded px-4 py-2 focus:outline-none focus:ring focus:ring-cyan-500" required>
             <option value="female">Kadın</option>
             <option value="male">Erkek</option>
         </select>
     </div>
-    <div class="mb-4 flex items-center space-x-2">
-        <input type="checkbox" name="subtitle" id="subtitle" />
-        <label for="subtitle" class="font-semibold">Altyazı Olsun mu?</label>
+
+    <div class="flex items-center space-x-2">
+        <input type="checkbox" name="subtitle" id="subtitle" class="form-checkbox text-cyan-500 focus:ring-cyan-500" />
+        <label for="subtitle" class="text-sm font-medium text-gray-400">📄 Altyazı Olsun mu?</label>
     </div>
-    <div class="mb-6">
-        <label for="panel" class="block mb-1 font-semibold">Panel</label>
-        <select name="panel" id="panel" class="w-full border rounded px-3 py-2" required>
+
+    <div>
+        <label for="panel" class="block mb-1 font-medium text-sm text-gray-400">🎛️ Panel Seç</label>
+        <select name="panel" id="panel" class="w-full bg-background border border-border rounded px-4 py-2 focus:outline-none focus:ring focus:ring-cyan-500" required>
             {% for panel in panels %}
-            <option value="{{ panel.id }}">{{ panel.name }} - {{ panel.platform }}</option>
+                <option value="{{ panel.id }}">{{ panel.name }} - {{ panel.platform }}</option>
             {% endfor %}
         </select>
     </div>
 
-    <button type="submit" class="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700">Oluştur</button>
+    <div class="pt-4">
+        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded transition-all">
+            🚀 Videoyu Oluştur
+        </button>
+    </div>
 </form>
+
+<a href="{% url 'videos:list' %}" class="block text-cyan-400 hover:underline text-sm mt-6 text-center">⬅️ Geri Dön</a>
 
 {% endblock %}

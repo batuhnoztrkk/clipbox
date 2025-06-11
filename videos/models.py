@@ -25,7 +25,6 @@ class Video(models.Model):
     error_message = models.TextField(blank=True, null=True)
 
     # İçerikler
-    generated_text = models.TextField(blank=True, null=True)
     voice_file = models.FileField(upload_to='voices/', blank=True, null=True)
     background_music = models.FileField(upload_to='music/', blank=True, null=True)
     final_video = models.FileField(upload_to='final_videos/', blank=True, null=True)
@@ -39,6 +38,19 @@ class Video(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+class VideoAIContent(models.Model):
+    video = models.OneToOneField(Video, on_delete=models.CASCADE, related_name='ai_content')
+
+    title = models.CharField(max_length=500)
+    script = models.TextField()
+    hashtags = models.JSONField()  # liste olarak JSON saklayacağız
+    description = models.CharField(max_length=500)
+    thumbnail_prompt = models.TextField()
+    content_prompt = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class VideoImage(models.Model):
     video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='images')
