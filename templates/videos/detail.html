@@ -103,11 +103,11 @@
     <h3 class="text-xl font-semibold text-cyan-300">📋 Üretim Adımları</h3>
 
     <div class="space-y-3 max-w-sm">
-      <button onclick="runStep('{{ video.id }}', 'text')" class="btn-step">1️⃣ Metin Üret</button>
-      <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">2️⃣ Ses Üret</button>
-      <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">3️⃣ Altyazı Üret</button>
-      <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">4️⃣ Görseller Üret</button>
-      <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">5️⃣ Montajla</button>
+        <button data-step="text" data-video-id="{{ video.id }}" class="btn-step">1️⃣ Metin Üret</button>
+        <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">2️⃣ Ses Üret</button>
+        <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">3️⃣ Altyazı Üret</button>
+        <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">4️⃣ Görseller Üret</button>
+        <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">5️⃣ Montajla</button>
     </div>
 
     <div id="step-result" class="text-sm text-gray-300 pt-2 italic"></div>
@@ -119,6 +119,7 @@
     function runStep(videoId, step) {
         const $status = $('#status');
         const $result = $('#step-result');
+        const $button = $(`button.btn-step:contains("${step === 'text' ? '1️⃣ Metin Üret' : ''}")`); // Butonu bulmak için alternatif yol
         $status.text('İşleniyor...');
         $result.text('');
 
@@ -171,6 +172,80 @@
             }
         });
     }
+
+    $(document).ready(function() {
+        $('.btn-step').on('click', function() {
+            const $btn = $(this);
+            const step = $btn.data('step');
+            const videoId = $btn.data('video-id');
+
+            if (!step || !videoId || $btn.is(':disabled')) {
+            return; // Eğer step, videoId yoksa veya buton disable ise çık
+            }
+
+            const $status = $('#status');
+            const $result = $('#step-result');
+
+            // Disable button and show loading text
+            $btn.prop('disabled', true);
+            const originalText = $btn.text();
+            $btn.text('İşleniyor...');
+
+            $status.text('İşleniyor...');
+            $result.text('');
+
+            $.ajax({
+            url: `/videos/${videoId}/generate/${step}/`,
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            success: function(res) {
+                if (res.success) {
+                $status.text(res.new_status || 'Tamamlandı');
+
+                if (step === 'text' && res.ai_content) {
+                    const ai = res.ai_content;
+
+                    $('.ai-content-title').text(ai.title || '');
+                    $('.ai-content-description').text(ai.description || '');
+
+                    if (ai.hashtags && ai.hashtags.length) {
+                    let hashtagsHtml = '';
+                    ai.hashtags.forEach(function(tag, idx) {
+                        hashtagsHtml += `<span class="text-sm text-cyan-400">#${tag}</span>`;
+                        if (idx !== ai.hashtags.length - 1) hashtagsHtml += ', ';
+                    });
+                    $('.ai-content-hashtags').html(hashtagsHtml);
+                    } else {
+                    $('.ai-content-hashtags').html('');
+                    }
+
+                    $('.ai-content-script pre').text(ai.script || '');
+
+                    $result.html('<p class="text-green-400 font-semibold">Metin başarıyla üretildi.</p>');
+                } else {
+                    $result.text(res.message || 'Adım başarıyla tamamlandı.');
+                }
+
+                if (res.video_url) {
+                    $result.append(`<br><a href="${res.video_url}" target="_blank" class="text-cyan-400 underline">Videoyu İzle</a>`);
+                }
+                } else {
+                $status.text('Hata');
+                $result.text('Hata: ' + (res.error || 'Bilinmeyen'));
+                }
+            },
+            error: function() {
+                $status.text('Hata');
+                $result.text('Sunucuya erişilemedi.');
+            },
+            complete: function() {
+                // İşlem bitti, butonu aktif et ve eski yazıyı geri koy
+                $btn.prop('disabled', false);
+                $btn.text(originalText);
+            }
+            });
+        });
+        });
 </script>
 
 <style>
