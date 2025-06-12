@@ -96,22 +96,50 @@
       {% endif %}
     </div>
 
-  </div>
-
-  <!-- Üretim Adımları (Her zaman görünür) -->
-  <div class="bg-card p-6 rounded-lg shadow border border-border mt-6 space-y-4">
-    <h3 class="text-xl font-semibold text-cyan-300">📋 Üretim Adımları</h3>
-
-    <div class="space-y-3 max-w-sm">
-        <button data-step="text" data-video-id="{{ video.id }}" class="btn-step">1️⃣ Metin Üret</button>
-        <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">2️⃣ Ses Üret</button>
-        <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">3️⃣ Altyazı Üret</button>
-        <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">4️⃣ Görseller Üret</button>
-        <button disabled class="btn-step opacity-50 cursor-not-allowed" title="Henüz aktif değil">5️⃣ Montajla</button>
+    <!-- Thumbnail -->
+    <div class="bg-card p-4 rounded-lg shadow border border-border space-y-3 col-span-1">
+        <h3 class="text-lg font-semibold text-cyan-300">📌 Thumbnail</h3>
+        {% if video.thumbnail %}
+            <img src="{{ video.thumbnail.url }}" alt="Video Thumbnail" class="rounded w-full object-cover thumbnail-output">
+            <a href="{{ video.thumbnail.url }}" target="_blank" class="block text-cyan-400 underline text-sm mt-2">🔍 Tam Gör</a>
+        {% else %}
+            <p class="text-gray-400 italic thumbnail-output">Thumbnail üretilmemiş.</p>
+        {% endif %}
     </div>
 
-    <div id="step-result" class="text-sm text-gray-300 pt-2 italic"></div>
   </div>
+
+    <!-- Üretim Adımları (Her zaman görünür) -->
+    <div class="bg-card p-6 rounded-lg shadow border border-border mt-6 space-y-4">
+        <h3 class="text-xl font-semibold text-cyan-300">📋 Üretim Adımları</h3>
+
+        <div class="space-y-3 max-w-sm">
+            <button data-step="text" data-video-id="{{ video.id }}" class="btn-step"
+            {% comment %}Her zaman aktif{% endcomment %}>1️⃣ Metin Üret</button>
+
+            <button data-step="voice" data-video-id="{{ video.id }}" class="btn-step
+            {% if not video.ai_content %} opacity-50 cursor-not-allowed" disabled title="Önce metin üretmelisiniz"
+            {% else %}"{% endif %}>2️⃣ Ses Üret</button>
+
+            <button data-step="subtitle" data-video-id="{{ video.id }}" class="btn-step
+            {% if not video.voice_file %} opacity-50 cursor-not-allowed" disabled title="Önce ses üretmelisiniz"
+            {% else %}"{% endif %}>3️⃣ Altyazı Üret</button>
+
+            <button data-step="content_images" data-video-id="{{ video.id }}" class="btn-step
+            {% if not video.subtitle_file %} opacity-50 cursor-not-allowed" disabled title="Önce altyazı üretmelisiniz"
+            {% else %}"{% endif %}>4️⃣ İçerik Görselleri Üret</button>
+
+            <button data-step="thumbnail_image" data-video-id="{{ video.id }}" class="btn-step
+            {% if not video.images.exists %} opacity-50 cursor-not-allowed" disabled title="Önce içerik görselleri üretilmeli"
+            {% else %}"{% endif %}>5️⃣ Thumbnail Üret</button>
+
+            <button data-step="edit" data-video-id="{{ video.id }}" class="btn-step
+            {% if not video.images.exists %} opacity-50 cursor-not-allowed" disabled title="Önce görseller üretilmeli"
+            {% else %}"{% endif %}>6️⃣ Montajla</button>
+        </div>
+
+        <div id="step-result" class="text-sm text-gray-300 pt-2 italic"></div>
+    </div>
 
 </div>
 
@@ -119,9 +147,11 @@
     function runStep(videoId, step) {
         const $status = $('#status');
         const $result = $('#step-result');
-        const $button = $(`button.btn-step:contains("${step === 'text' ? '1️⃣ Metin Üret' : ''}")`); // Butonu bulmak için alternatif yol
+        const $button = $(`button.btn-step[data-step="${step}"][data-video-id="${videoId}"]`);
+
         $status.text('İşleniyor...');
         $result.text('');
+        $button.prop('disabled', true).addClass('opacity-50 cursor-not-allowed');
 
         $.ajax({
             url: `/videos/${videoId}/generate/${step}/`,
@@ -132,17 +162,13 @@
                 $status.text(res.new_status || 'Tamamlandı');
 
                 if (step === 'text' && res.ai_content) {
-                // AI içerik alanlarını sayfada güncelle
                 const ai = res.ai_content;
-
-                // Başlık
                 $('.ai-content-title').text(ai.title || '');
-                // Açıklama
                 $('.ai-content-description').text(ai.description || '');
-                // Hashtagler
+
                 if (ai.hashtags && ai.hashtags.length) {
                     let hashtagsHtml = '';
-                    ai.hashtags.forEach(function(tag, idx) {
+                    ai.hashtags.forEach((tag, idx) => {
                     hashtagsHtml += `<span class="text-sm text-cyan-400">#${tag}</span>`;
                     if (idx !== ai.hashtags.length - 1) hashtagsHtml += ', ';
                     });
@@ -150,17 +176,72 @@
                 } else {
                     $('.ai-content-hashtags').html('');
                 }
-                // Script
-                $('.ai-content-script pre').text(ai.script || '');
 
+                $('.ai-content-script pre').text(ai.script || '');
                 $result.html('<p class="text-green-400 font-semibold">Metin başarıyla üretildi.</p>');
-                } else {
-                $result.text(res.message || 'Adım başarıyla tamamlandı.');
                 }
 
+                if (step === 'voice' && res.voice_file_url) {
+                const audioHtml = `
+                    <audio controls class="w-full">
+                    <source src="${res.voice_file_url}" type="audio/mpeg">
+                    Tarayıcınız ses formatını desteklemiyor.
+                    </audio>
+                    <a href="${res.voice_file_url}" target="_blank" class="text-cyan-400 underline text-sm block mt-1">🎧 Sesi İndir</a>
+                `;
+                $('.voice-output').html(audioHtml);
+                $result.html('<p class="text-green-400 font-semibold">Ses başarıyla üretildi.</p>');
+                }
+
+                if (step === 'subtitle' && res.subtitle_file_url) {
+                const subtitleHtml = `
+                    <a href="${res.subtitle_file_url}" target="_blank" class="text-cyan-400 underline text-sm block mt-2">📝 Altyazı Dosyasını İndir</a>
+                `;
+                $('.subtitle-output').html(subtitleHtml);
+                $result.html('<p class="text-green-400 font-semibold">Altyazı başarıyla üretildi.</p>');
+                }
+
+                if (step === 'images' && res.images && res.images.length > 0) {
+                let imagesHtml = '<div class="grid grid-cols-2 gap-2">';
+                res.images.forEach(imgUrl => {
+                    imagesHtml += `<img src="${imgUrl}" alt="Görsel" class="rounded w-full object-cover">`;
+                });
+                imagesHtml += '</div>';
+                $('.image-output').html(imagesHtml);
+                $result.html('<p class="text-green-400 font-semibold">Görseller başarıyla üretildi.</p>');
+                }
+
+                if (step === 'thumbnail_image' && res.thumbnail_url) {
+                const thumbHtml = `
+                    <img src="${res.thumbnail_url}" alt="Video Thumbnail" class="w-full rounded shadow mt-4"/>
+                `;
+                $('.thumbnail-output').html(thumbHtml);
+                $result.html('<p class="text-green-400 font-semibold">Thumbnail başarıyla üretildi.</p>');
+                }
+
+                if (step === 'edit' && res.final_video_url) {
+                const videoHtml = `
+                    <video class="w-full rounded" controls>
+                    <source src="${res.final_video_url}" type="video/mp4" />
+                    Tarayıcınız video formatını desteklemiyor.
+                    </video>
+                    <a href="${res.final_video_url}" target="_blank" class="block mt-3 text-cyan-400 hover:underline text-sm">🎞️ Videoyu İzle / İndir</a>
+                `;
+                $('.final-video-output').html(videoHtml);
+                $result.html('<p class="text-green-400 font-semibold">Montaj başarıyla tamamlandı.</p>');
+                }
+
+                // Sonuç linki varsa göster
                 if (res.video_url) {
                 $result.append(`<br><a href="${res.video_url}" target="_blank" class="text-cyan-400 underline">Videoyu İzle</a>`);
                 }
+
+                // Sonraki adımı aktif et
+                if (step === 'text') enableNextStep('voice', videoId);
+                else if (step === 'voice') enableNextStep('subtitle', videoId);
+                else if (step === 'subtitle') enableNextStep('images', videoId);
+                else if (step === 'images') enableNextStep('edit', videoId);
+
             } else {
                 $status.text('Hata');
                 $result.text('Hata: ' + (res.error || 'Bilinmeyen'));
@@ -169,83 +250,50 @@
             error: function() {
             $status.text('Hata');
             $result.text('Sunucuya erişilemedi.');
-            }
-        });
-    }
-
-    $(document).ready(function() {
-        $('.btn-step').on('click', function() {
-            const $btn = $(this);
-            const step = $btn.data('step');
-            const videoId = $btn.data('video-id');
-
-            if (!step || !videoId || $btn.is(':disabled')) {
-            return; // Eğer step, videoId yoksa veya buton disable ise çık
-            }
-
-            const $status = $('#status');
-            const $result = $('#step-result');
-
-            // Disable button and show loading text
-            $btn.prop('disabled', true);
-            const originalText = $btn.text();
-            $btn.text('İşleniyor...');
-
-            $status.text('İşleniyor...');
-            $result.text('');
-
-            $.ajax({
-            url: `/videos/${videoId}/generate/${step}/`,
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            success: function(res) {
-                if (res.success) {
-                $status.text(res.new_status || 'Tamamlandı');
-
-                if (step === 'text' && res.ai_content) {
-                    const ai = res.ai_content;
-
-                    $('.ai-content-title').text(ai.title || '');
-                    $('.ai-content-description').text(ai.description || '');
-
-                    if (ai.hashtags && ai.hashtags.length) {
-                    let hashtagsHtml = '';
-                    ai.hashtags.forEach(function(tag, idx) {
-                        hashtagsHtml += `<span class="text-sm text-cyan-400">#${tag}</span>`;
-                        if (idx !== ai.hashtags.length - 1) hashtagsHtml += ', ';
-                    });
-                    $('.ai-content-hashtags').html(hashtagsHtml);
-                    } else {
-                    $('.ai-content-hashtags').html('');
-                    }
-
-                    $('.ai-content-script pre').text(ai.script || '');
-
-                    $result.html('<p class="text-green-400 font-semibold">Metin başarıyla üretildi.</p>');
-                } else {
-                    $result.text(res.message || 'Adım başarıyla tamamlandı.');
-                }
-
-                if (res.video_url) {
-                    $result.append(`<br><a href="${res.video_url}" target="_blank" class="text-cyan-400 underline">Videoyu İzle</a>`);
-                }
-                } else {
-                $status.text('Hata');
-                $result.text('Hata: ' + (res.error || 'Bilinmeyen'));
-                }
-            },
-            error: function() {
-                $status.text('Hata');
-                $result.text('Sunucuya erişilemedi.');
             },
             complete: function() {
-                // İşlem bitti, butonu aktif et ve eski yazıyı geri koy
-                $btn.prop('disabled', false);
-                $btn.text(originalText);
+            $button.prop('disabled', false).removeClass('opacity-50 cursor-not-allowed');
             }
+        });
+        }
+
+    function enableNextStep(step, videoId) {
+        $(`button.btn-step[data-step="${step}"][data-video-id="${videoId}"]`)
+            .prop('disabled', false)
+            .removeClass('opacity-50 cursor-not-allowed')
+            .attr('title', '');
+    }
+
+    $(document).on('click', 'button.btn-step:not(:disabled)', function() {
+        const step = $(this).data('step');
+        const videoId = $(this).data('video-id');
+        runStep(videoId, step);
+    });
+
+    $(document).ready(function() {
+        function setStepButtonsStatus(video) {
+            // video değişkeni Django'dan JSON olarak geçilebilir
+            const steps = [
+                { step: 'text', key: null },
+                { step: 'voice', key: video.ai_content },
+                { step: 'subtitle', key: video.voice_file },
+                { step: 'images', key: video.subtitle_file },
+                { step: 'edit', key: video.images && video.images.length > 0 },
+            ];
+
+            steps.forEach(({ step, key }, idx) => {
+                const $btn = $(`.btn-step[data-step="${step}"]`);
+                if (idx === 0 || key) {
+                $btn.prop('disabled', false).removeClass('opacity-50 cursor-not-allowed').attr('title', '');
+                } else {
+                $btn.prop('disabled', true).addClass('opacity-50 cursor-not-allowed').attr('title', 'Önceki adımı tamamlayın');
+                }
             });
-        });
-        });
+            }
+
+        // Sayfa yüklendiğinde sadece 1. step aktif olsun
+        setStepButtonsStatus(null);
+    });
 </script>
 
 <style>

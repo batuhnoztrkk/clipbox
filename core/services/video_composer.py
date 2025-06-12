@@ -1,20 +1,22 @@
+import os
+import re
 import logging
+import uuid
 from moviepy import (
     ImageClip,
     concatenate_videoclips,
     AudioFileClip,
     CompositeAudioClip,
-    VideoFileClip,
     TextClip,
     CompositeVideoClip,
+    VideoFileClip,
 )
 from moviepy.video.fx.Resize import Resize
+from moviepy.video.fx.CrossFadeIn import CrossFadeIn
 from moviepy.video.tools.subtitles import SubtitlesClip
-import os
-import logging
-import re
-
+from django.conf import settings
 logger = logging.getLogger(__name__)
+
 
 def parse_srt(srt_text):
     subtitles = []
@@ -23,112 +25,130 @@ def parse_srt(srt_text):
     for entry in entries:
         lines = entry.strip().split("\n")
         if len(lines) >= 3:
-            # Zaman bilgisi
             time_line = lines[1]
             start_str, end_str = time_line.split(" --> ")
 
             def time_to_seconds(t):
-                h, m, s = re.split(r'[:,]', t)
-                return int(h) * 3600 + int(m) * 60 + float(s.replace(',', '.'))
+                match = re.match(r"(\d+):(\d+):(\d+),(\d+)", t)
+                if not match:
+                    raise ValueError(f"Invalid time format: {t}")
+                h, m, s, ms = map(int, match.groups())
+                return h * 3600 + m * 60 + s + ms / 1000
 
             start = time_to_seconds(start_str)
             end = time_to_seconds(end_str)
-
-            # Metin kısmı
             text = " ".join(lines[2:])
             subtitles.append(((start, end), text))
 
     return subtitles
 
+def make_zoom_effect(image_path, duration, resolution, zoom_ratio):
+    img_clip = ImageClip(image_path)
+    w, h = img_clip.size
+
+    def make_frame(t):
+        zoom = 1.0 + zoom_ratio * (t / duration)
+        frame = img_clip.get_frame(0)  # Görsel sabit
+        resized = Resize(lambda _: zoom)(ImageClip(frame))
+        return resized.resize(resolution).get_frame(0)
+
+    return VideoClip(make_frame=make_frame, duration=duration).set_duration(duration)
 
 def compose_video(
     images,
     audio_path,
     output_path="output.mp4",
     music_path=None,
-    resolution=(1280, 720),  # (width, height) örn: 1280x720
+    resolution=(1280, 720),
     srt_path=None,
 ):
-    print("Starting video composition")
     try:
+        print("🎬 Starting video composition")
+
         if not images:
-            print("No images provided to compose_video")
+            logger.error("No images provided.")
             return None
 
-        print(f"Video resolution set to: {resolution[0]}x{resolution[1]}")
+        print(f"🖼️ Video resolution: {resolution}")
 
-        # Ana ses klibi
-        print(f"Loading main audio from {audio_path}")
         audio = AudioFileClip(audio_path)
         audio_duration = audio.duration
-        print(f"Audio duration: {audio_duration:.2f} seconds")
+        print(f"🔊 Audio loaded. Duration: {audio_duration:.2f}s")
 
-        # Arka plan müziği varsa
-        if music_path:
-            print(f"Loading background music from {music_path}")
+        # Background music
+        if music_path and os.path.isfile(music_path):
             music = AudioFileClip(music_path).volumex(0.3)
-            final_audio = CompositeAudioClip([audio, music])
-            # Süre final_audio'nun süresi ana sesin süresiyle aynı olacak şekilde ayarlanmalı
-            final_audio = final_audio.set_duration(audio_duration)
+            final_audio = CompositeAudioClip([audio, music.set_duration(audio.duration)])
         else:
             final_audio = audio
 
-        # Resimlerin her birinin gösterim süresi
         clip_duration = audio_duration / len(images)
-        print(f"Each image will be shown for: {clip_duration:.2f} seconds")
+
+        transition_duration = 1.0  # saniye cinsinden geçiş süresi
 
         clips = []
+
         for idx, img_path in enumerate(images):
-            print(f"Adding image {idx + 1}/{len(images)} to video: {img_path}")
+            print(f"📷 Processing image {idx + 1}/{len(images)}: {img_path}")
 
             try:
-                # Resmi video çözünürlüğüne göre boyutlandırıyoruz
-                clip = ImageClip(img_path,  duration=clip_duration)
-                # İlk resize sabit çözünürlük için
-                clip = clip.with_effects([Resize(resolution)])
+                zoom_ratio = 0.2
+                # Görseli süreyle birlikte klip haline getir
+                img = ImageClip(img_path, duration=clip_duration + transition_duration)
 
-                # Zoom efekti için zamanla değişen resize
-                zoom_start = 1
-                zoom_end = 1.05
-                zoom_func = lambda t: zoom_start + (zoom_end - zoom_start) * (t / clip_duration)
+                # 🔍 Efekt zinciri: önce zoom, sonra çözünürlük
+                effects = [
+                    Resize(lambda t: 1.0 + zoom_ratio * (t / clip_duration)),  # Zoom
+                    Resize(resolution)                                         # Çözünürlük
+                ]
 
-                clip = clip.with_effects([Resize(zoom_func)])
-                clips.append(clip)
+                # 🎞️ Geçiş efekti sadece ilk klipten sonrakilere uygulanır
+                # İlk klip dışındakilere CrossFadeIn ekleniyor
+                if idx != 0:
+                    effects.append(CrossFadeIn(transition_duration))
+
+                img = img.with_effects(effects)
+
+                clips.append(img)
+
             except Exception as e:
-                print(f"Error creating ImageClip for image {img_path}: {e}")
+                logger.error(f"⚠️ Error with image {img_path}: {e}")
                 return None
+            
+        print("🧩 Concatenating image clips with crossfade")
+        video = concatenate_videoclips(clips, method="compose", padding=-transition_duration)
+        video = video.with_audio(final_audio)
 
-        print("Concatenating video clips")
-        video = concatenate_videoclips(clips, method="compose")
-        print("Adding final audio")
-        video.audio = final_audio
-
-        # Altyazı varsa ekle
+        # Subtitles
         if srt_path and os.path.isfile(srt_path):
-            print(f"Adding subtitles from {srt_path}")
+            print(f"💬 Adding subtitles from: {srt_path}")
 
-            def subtitle_generator(txt):
-                # Basit beyaz metin
-                return TextClip(txt, fontsize=24, color='white', font='Arial', stroke_color='black', stroke_width=0.5)
-
-            with open(srt_path, "r", encoding="utf-8") as f:
+            with open(srt_path, "r", encoding="utf-8-sig") as f:
                 srt_text = f.read()
 
-            try:
-                subtitles_data = parse_srt(srt_text)
-                subtitles = SubtitlesClip(subtitles_data, subtitle_generator)
-                video = CompositeVideoClip([video, subtitles.set_pos(("center", "bottom"))])
-            except Exception as e:
-                print(f"Failed to add subtitles: {e}")
-        else:
-            if srt_path:
-                print(f"Subtitle file {srt_path} not found, skipping subtitles.")
+            subtitles_data = parse_srt(srt_text)
+            FONT_PATH = os.path.join(settings.BASE_DIR, "static", "Roboto_Condensed-Bold.ttf")
+            def generator(txt):
+                return TextClip(
+                    text=txt,
+                    font_size=92,                # Büyük yazı
+                    font=FONT_PATH,          # Kalın font
+                    color='white',
+                    stroke_color='black',     # Dış hat çizgisi
+                    stroke_width=2,           # Çizgi kalınlığı
+                    size=(resolution[0] - 100, None),  # Genişlik ekranla uyumlu
+                    method='caption',           # Otomatik satır geçişi
+                )
+            subtitles = SubtitlesClip(subtitles_data, make_textclip=generator)
+            video = CompositeVideoClip([video, subtitles.with_position(("center", "center"))])
+            video = video.with_audio(final_audio)
 
-        print(f"Writing final video file to {output_path}")
-        video.write_videofile(output_path, fps=24)
+        print(f"💾 Writing final video to {output_path}")
+        video.write_videofile(output_path, fps=24, codec="libx264", audio_codec="aac")
 
-        print("Video composition finished successfully")
+        print("✅ Video composition finished successfully")
         return output_path
+
     except Exception as e:
-        print(f"Failed to compose video: {e}")
+        logger.exception(f"❌ Failed to compose video: {str(e)}")
         return None

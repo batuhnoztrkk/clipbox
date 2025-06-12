@@ -18,32 +18,43 @@ class TextAgentInput(BaseModel):
     topic_title: str = Field(..., description="Video için başlık")
     prompt_context: str = Field(..., description="Video içeriği hakkında detaylı açıklama")
     duration_minutes: int = Field(1, description="Video süresi (dakika olarak)")
+    language: str = Field("tr", description="Video dili")
 
 class TextAgent(BaseAgentTool):
     name: str = "text_generator"
     description: str = (
-        "Generates a complete social media video content package including title, script, hashtags, "
-        "and a short description, based on a topic and context. Designed for TikTok, Reels, and Shorts."
+        "Creates a full social video content pack (title, script, description, hashtags, and AI prompts) "
+        "based on a given topic. Optimized for platforms like TikTok, Reels, Shorts. "
+        "Ensures the generated script matches the specified language exactly and is suitable for voice-over, "
+        "lasting slightly less than the specified duration (max 5 seconds shorter). "
+        "It avoids any markdown, explanations, or code blocks — returns only valid JSON."
     )
     args_schema: Type[BaseModel] = TextAgentInput
     return_schema: Type[BaseModel] = TextAgentOutput
 
-    def _run(self, api_key: str, topic_title: str, prompt_context: str, duration_minutes: int = 1) -> dict:
+    def _run(self, api_key: str, topic_title: str, prompt_context: str, language: str, duration_minutes: int = 1) -> dict:
         prompt = (
-            "You are a professional viral video scriptwriter for TikTok, Instagram Reels, and YouTube Shorts. "
-            "Write a highly engaging, curiosity-driven, emotional video script that grabs attention in the first 3 seconds "
-            "with short, punchy sentences. The script should be suitable for narration, without describing video production or ending lines. "
-            "Make the story mysterious, shocking or emotionally powerful. End with a twist or question that hooks the viewer. "
-            "\n\n"
-            "Input:\n"
+            "You are an AI backend agent. You NEVER respond with markdown, explanations, or code blocks.\n\n"
+            "You are a professional scriptwriter for TikTok, Instagram Reels, and YouTube Shorts.\n"
+            "Your task is to write a high-impact, curiosity-driven, emotionally engaging script.\n"
+            "Requirements:\n"
+            "- Grab attention in the first 3 seconds.\n"
+            "- Use short, punchy sentences.\n"
+            "- Do NOT include production directions or closing remarks.\n"
+            "- Do NOT use markdown or code blocks.\n"
+            "- End with a twist, a question, or something thought-provoking.\n\n"
+            "Strict rules:\n"
+            "- All output must be in the exact language: **{language}**\n"
+            "- The script must be suitable for narration and should last NO MORE than {duration_minutes * 60 - 5} seconds when read aloud.\n"
+            "- Estimate 2.5 words per second when writing.\n\n"
+            "Inputs:\n"
             f"- Title: {topic_title}\n"
             f"- Context: {prompt_context}\n"
-            f"- Duration: {duration_minutes} minute(s)\n\n"
-            "Output strictly as JSON with these keys:\n"
+            f"- Duration: {duration_minutes} minute(s)\n"
+            f"- Language: {language}\n\n"
+            "Output ONLY a JSON object with the following keys:\n"
             "title (string), script (string), hashtags (array of strings), description (string), "
-            "thumbnail_prompt (string), content_prompt (string)\n\n"
-            "Do NOT include explanations or instructions. DO NOT mention 'video ends' or similar. "
-            "JUST return the JSON object."
+            "thumbnail_prompt (string), content_prompt (string)"
         )
 
         llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.8, api_key=api_key)

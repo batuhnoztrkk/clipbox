@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="text-2xl font-bold text-primary mb-6">📋 Panel Detayı</h2>
+
+<!-- Panel Bilgileri -->
+<div class="bg-card border border-border rounded-xl p-6 shadow-md mb-10">
+  <div class="flex justify-between items-center">
+    <div>
+      <p class="text-lg text-cyan-400 font-semibold">{{ panel.name }}</p>
+      <p class="text-sm text-gray-400">{{ panel.platform }}</p>
+      <p class="text-xs text-gray-500 mt-1 italic">Oluşturulma: {{ panel.created_at|date:"d.m.Y H:i" }}</p>
+    </div>
+    <div class="space-x-3">
+      <a href="{% url 'panels:edit' panel.id %}" 
+         class="bg-yellow-400 hover:bg-yellow-300 text-black px-4 py-2 rounded-lg font-medium transition">
+        ✏️ Paneli Düzenle
+      </a>
+      <a href="{% url 'videos:create' panel.id %}" 
+         class="bg-emerald-500 hover:bg-emerald-400 text-black px-4 py-2 rounded-lg font-medium transition">
+        ➕ Yeni Video Oluştur
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Panel Videoları -->
+<div class="overflow-x-auto rounded-lg border border-border bg-card">
+  <table class="min-w-full text-sm text-gray-200">
+    <thead class="bg-[#1f2937] text-gray-400 uppercase tracking-wider text-xs">
+      <tr>
+        <th class="px-6 py-3 text-left">🎬 Başlık</th>
+        <th class="px-6 py-3 text-left">⏱️ Süre (dk)</th>
+        <th class="px-6 py-3 text-left">🚦 Durum</th>
+        <th class="px-6 py-3 text-left">📅 Oluşturulma</th>
+        <th class="px-6 py-3 text-left">⚙️ İşlem</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for video in panel.videos.all %}
+      <tr class="border-t border-border hover:bg-[#2a303c] transition">
+        <td class="px-6 py-4 font-medium">{{ video.title }}</td>
+        <td class="px-6 py-4">{{ video.duration_minutes }}</td>
+        <td class="px-6 py-4">
+          {% if video.status == "COMPLETED" %}
+              <span class="text-green-400 font-semibold">Tamamlandı</span>
+          {% elif video.status == "ERROR" %}
+              <span class="text-red-400 font-semibold">Hata</span>
+          {% elif video.status == "GENERATING" %}
+              <span class="text-yellow-400 font-semibold">Oluşturuluyor</span>
+          {% else %}
+              <span class="text-gray-400">Bekliyor</span>
+          {% endif %}
+        </td>
+        <td class="px-6 py-4">{{ video.created_at|date:"d.m.Y H:i" }}</td>
+        <td class="px-6 py-4 space-x-2">
+          <a href="{% url 'videos:detail' video.id %}" class="text-cyan-400 hover:underline">Detay</a>
+          <a href="{% url 'videos:edit' video.id %}" class="text-yellow-400 hover:underline">Düzenle</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="text-center py-6 text-gray-500 italic">
+          🚫 Bu panele ait henüz video yok.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<a href="{% url 'panels:list' %}" class="mt-8 inline-block text-cyan-400 hover:underline text-sm">
+  ← Panellere Dön
+</a>
+{% endblock %}

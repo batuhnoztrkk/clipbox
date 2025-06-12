@@ -19,8 +19,7 @@
         </thead>
         <tbody>
             {% for panel in panels %}
-            <tr class="border-t border-border hover:bg-[#2a303c] cursor-pointer transition"
-                hx-get="{% url 'panels:detail' panel.id %}" hx-target="#panel-detail" hx-swap="innerHTML">
+            <tr onclick="window.location.href='{% url 'panels:detail' panel.id %}'" class="border-t border-border hover:bg-[#2a303c] cursor-pointer transition">
                 <td class="px-6 py-4">{{ panel.name }}</td>
                 <td class="px-6 py-4">{{ panel.platform }}</td>
                 <td class="px-6 py-4">{{ panel.created_at|date:"d.m.Y H:i" }}</td>

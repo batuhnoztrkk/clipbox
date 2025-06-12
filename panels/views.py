@@ -1,10 +1,10 @@
 from django.shortcuts import render, get_object_or_404
 from .models import Panel
 
+
 def panel_detail(request, pk):
-    panel = get_object_or_404(Panel, pk=pk)
-    # Sadece detay içeriği döner
-    return render(request, 'panels/detail_partial.html', {'panel': panel})
+    panel = get_object_or_404(Panel.objects.prefetch_related('videos'), pk=pk)
+    return render(request, 'panels/panel_detail.html', {'panel': panel})
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required

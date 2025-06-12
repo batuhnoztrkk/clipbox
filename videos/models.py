@@ -26,7 +26,9 @@ class Video(models.Model):
 
     # İçerikler
     voice_file = models.FileField(upload_to='voices/', blank=True, null=True)
+    subtitle_file = models.FileField(upload_to='subtitle/', blank=True, null=True)
     background_music = models.FileField(upload_to='music/', blank=True, null=True)
+    thumbnail = models.ImageField(upload_to="thumbnails/", blank=True, null=True)
     final_video = models.FileField(upload_to='final_videos/', blank=True, null=True)
 
     # Zaman bilgisi

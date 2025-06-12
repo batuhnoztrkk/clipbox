@@ -3,7 +3,7 @@
 
 <h2 class="text-3xl font-bold text-primary mb-6">🎥 Yeni Video Oluştur</h2>
 
-<form method="POST" action="{% url 'videos:create' %}" class="bg-card border border-border p-6 rounded-lg shadow max-w-2xl mx-auto space-y-5 text-gray-300">
+<form method="POST" action="{% url 'videos:create' panel.id %}" class="bg-card border border-border p-6 rounded-lg shadow max-w-2xl mx-auto space-y-5 text-gray-300">
     {% csrf_token %}
 
     <div>
@@ -32,15 +32,6 @@
     <div class="flex items-center space-x-2">
         <input type="checkbox" name="subtitle" id="subtitle" class="form-checkbox text-cyan-500 focus:ring-cyan-500" />
         <label for="subtitle" class="text-sm font-medium text-gray-400">📄 Altyazı Olsun mu?</label>
-    </div>
-
-    <div>
-        <label for="panel" class="block mb-1 font-medium text-sm text-gray-400">🎛️ Panel Seç</label>
-        <select name="panel" id="panel" class="w-full bg-background border border-border rounded px-4 py-2 focus:outline-none focus:ring focus:ring-cyan-500" required>
-            {% for panel in panels %}
-                <option value="{{ panel.id }}">{{ panel.name }} - {{ panel.platform }}</option>
-            {% endfor %}
-        </select>
     </div>
 
     <div class="pt-4">
