@@ -8,8 +8,7 @@ from moviepy import (
     AudioFileClip,
     CompositeAudioClip,
     TextClip,
-    CompositeVideoClip,
-    VideoFileClip,
+    CompositeVideoClip
 )
 from moviepy.video.fx.Resize import Resize
 from moviepy.video.fx.CrossFadeIn import CrossFadeIn
@@ -42,17 +41,40 @@ def parse_srt(srt_text):
 
     return subtitles
 
-def make_zoom_effect(image_path, duration, resolution, zoom_ratio):
-    img_clip = ImageClip(image_path)
-    w, h = img_clip.size
+def animated_textclip(txt, start, end, resolution, font_path):
+    """
+    Harf harf altyazı efekti oluşturur (moving letter effect).
+    """
+    duration = end - start
+    total_chars = len(txt)
+    clips = []
 
-    def make_frame(t):
-        zoom = 1.0 + zoom_ratio * (t / duration)
-        frame = img_clip.get_frame(0)  # Görsel sabit
-        resized = Resize(lambda _: zoom)(ImageClip(frame))
-        return resized.resize(resolution).get_frame(0)
+    for i in range(1, total_chars + 1):
+        sub_txt = txt[:i]
 
-    return VideoClip(make_frame=make_frame, duration=duration).set_duration(duration)
+        try:
+            clip = (
+                TextClip(
+                    text=sub_txt,
+                    font=font_path,
+                    font_size=92,
+                    color="white",
+                    stroke_color="black",
+                    stroke_width=2,
+                    size=(resolution[0] - 100, None),
+                    method="caption"
+                )
+                .with_position(("center", "center"))
+                .with_start(start + ((i - 1) * (duration / total_chars)))
+                .with_duration(duration / total_chars)
+            )
+
+            clips.append(clip)
+        except Exception as e:
+            print(f"❌ Error creating animated subtitle for: '{sub_txt}' -> {e}")
+            continue
+
+    return CompositeVideoClip(clips).with_start(start).with_duration(duration)
 
 def compose_video(
     images,
@@ -120,6 +142,7 @@ def compose_video(
         video = video.with_audio(final_audio)
 
         # Subtitles
+        # Subtitles
         if srt_path and os.path.isfile(srt_path):
             print(f"💬 Adding subtitles from: {srt_path}")
 
@@ -127,21 +150,17 @@ def compose_video(
                 srt_text = f.read()
 
             subtitles_data = parse_srt(srt_text)
+            animated_subs = []
             FONT_PATH = os.path.join(settings.BASE_DIR, "static", "Roboto_Condensed-Bold.ttf")
-            def generator(txt):
-                return TextClip(
-                    text=txt,
-                    font_size=92,                # Büyük yazı
-                    font=FONT_PATH,          # Kalın font
-                    color='white',
-                    stroke_color='black',     # Dış hat çizgisi
-                    stroke_width=2,           # Çizgi kalınlığı
-                    size=(resolution[0] - 100, None),  # Genişlik ekranla uyumlu
-                    method='caption',           # Otomatik satır geçişi
-                )
-            subtitles = SubtitlesClip(subtitles_data, make_textclip=generator)
-            video = CompositeVideoClip([video, subtitles.with_position(("center", "center"))])
+
+            for (start, end), text in subtitles_data:
+                animated = animated_textclip(text, start, end, resolution, FONT_PATH)
+                animated_subs.append(animated)
+
+            subtitle_layer = CompositeVideoClip(animated_subs)
+            video = CompositeVideoClip([video, subtitle_layer])
             video = video.with_audio(final_audio)
+
 
         print(f"💾 Writing final video to {output_path}")
         video.write_videofile(output_path, fps=24, codec="libx264", audio_codec="aac")
